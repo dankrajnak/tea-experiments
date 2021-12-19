@@ -5,7 +5,6 @@ import { PlaneBufferGeometry } from "three";
 import SimplexNoise from "simplex-noise";
 
 const Cloth = () => {
-  const timeRef = useRef({ value: 0 });
   const geometryRef = useRef<PlaneBufferGeometry>();
   useFrame((state) => {
     const time = state.clock.elapsedTime / 3;
@@ -16,22 +15,44 @@ const Cloth = () => {
         const x = positions.getX(i);
         const y = positions.getY(i);
         const newZ = 2 + Math.sin((x + time) * 3) + Math.sin((y + time) * 2);
-        // positions.setZ(i, newZ);
+        positions.setZ(i, newZ);
       }
-      // positions.needsUpdate = true;
+      positions.needsUpdate = true;
       // geometryRef.current.computeVertexNormals();
     }
   });
   return (
     <>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
-        <meshStandardMaterial
-          metalness={0.8}
-          transparent
-          opacity={0.1}
+      <mesh
+        rotation={[-Math.PI / 1.9, 0, 0]}
+        position={[0.1, 2, 0]}
+        castShadow
+        receiveShadow
+      >
+        <meshPhysicalMaterial
+          shadowSide={THREE.DoubleSide}
+          // metalness={0.8}
+          // transparent
+          // opacity={1}
           // side={THREE.DoubleSide}
         />
-        <planeGeometry args={[30, 30]} />
+        <planeGeometry args={[15, 15, 30, 30]} />
+      </mesh>
+
+      <mesh
+        rotation={[-Math.PI / 1.8, 0, 0]}
+        position={[0, 1, 0]}
+        castShadow
+        receiveShadow
+      >
+        <meshPhysicalMaterial
+          shadowSide={THREE.FrontSide}
+          // metalness={0.8}
+          // transparent
+          // opacity={1}
+          // side={THREE.DoubleSide}
+        />
+        <planeGeometry args={[30, 30, 30, 30]} />
       </mesh>
       {/* <lineSegments position={[0, 6.5, 0]}>
         <edgesGeometry

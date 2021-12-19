@@ -14,13 +14,14 @@ import {
 import Cloth from "../src/Cloth";
 import * as THREE from "three";
 import { MeshStandardMaterial, PointLightHelper, SpotLightHelper } from "three";
+import { softShadows } from "@react-three/drei";
 
 const origin = new THREE.Vector3(0, 0, 0);
 
 const Home: NextPage = () => {
   return (
     <div style={{ height: "100vh" }}>
-      <Canvas dpr={[1, 2]}>
+      <Canvas shadows>
         <Stats showPanel={0} />
         <Suspense fallback={null}>
           <Inner />
@@ -54,6 +55,7 @@ const Inner = () => {
       // minPolarAngle={Math.PI / 4}
       />
       <Suspense fallback={null}>
+        <Cloth />
         {/* <Stars
           radius={100} // Radius of the inner sphere (default=100)
           depth={50} // Depth of area where stars should fit (default=50)
@@ -75,18 +77,21 @@ const Inner = () => {
         >
           {(Material, props) => <Material {...props} />}
         </Reflector> */}
-        <mesh material={concreteMaterial} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[200, 200, 200, 200]} />
+        <mesh
+          material={concreteMaterial}
+          rotation={[-Math.PI / 2, 0, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[200, 200]} />
         </mesh>
 
         <spotLight
-          position={[0, 20, 0]}
+          position={[0, 40, 0]}
           color="white"
           ref={pointLightRef}
-          intensity={0.2}
+          // intensity={0.2}
+          castShadow
         />
-
-        <Cloth />
       </Suspense>
     </>
   );
