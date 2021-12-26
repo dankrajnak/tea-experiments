@@ -1,20 +1,10 @@
 import type { NextPage } from "next";
-import { Canvas } from "@react-three/fiber";
-import React, { Suspense, useRef } from "react";
-import {
-  Cloud,
-  OrbitControls,
-  Reflector,
-  Stage,
-  Stars,
-  Stats,
-  useGLTF,
-  useHelper,
-} from "@react-three/drei";
+import { Canvas, useThree } from "@react-three/fiber";
+import React, { Suspense, useRef, useState, useLayoutEffect } from "react";
+import { OrbitControls, Stats, useHelper } from "@react-three/drei";
 import Cloth from "../src/Cloth";
 import * as THREE from "three";
-import { MeshStandardMaterial, PointLightHelper, SpotLightHelper } from "three";
-import { softShadows } from "@react-three/drei";
+import { PointLightHelper } from "three";
 
 const origin = new THREE.Vector3(0, 0, 0);
 
@@ -35,24 +25,23 @@ const Inner = () => {
   const pointLightRef = useRef();
   const bluePointLightRef = useRef();
   const greenPointLightRef = useRef();
-  useHelper(pointLightRef, SpotLightHelper);
+  useHelper(pointLightRef, PointLightHelper);
   useHelper(bluePointLightRef, PointLightHelper);
-  useHelper(greenPointLightRef, PointLightHelper);
-
-  const gltf = useGLTF("concrete_floor_02_1k.gltf");
-  console.log(gltf);
-  const concreteMaterial = gltf.materials
-    .concrete_floor_02 as MeshStandardMaterial;
-  concreteMaterial.map.repeat = new THREE.Vector2(8, 8);
-
+  // useHelper(greenPointLightRef, PointLightHelper);
+  const [s, damn] = useState(0);
+  useLayoutEffect(() => {
+    setTimeout(() => {
+      damn(1);
+    }, 30);
+  }, []);
   return (
     <>
       <OrbitControls
-      // minDistance={30}
-      // enableZoom={false}
-      // enablePan={false}
-      // maxPolarAngle={Math.PI / 2.5}
-      // minPolarAngle={Math.PI / 4}
+        minDistance={100}
+        // enableZoom={false}
+        // enablePan={false}
+        // maxPolarAngle={Math.PI / 2.5}
+        // minPolarAngle={Math.PI / 4}
       />
       <Suspense fallback={null}>
         <Cloth />
@@ -77,21 +66,34 @@ const Inner = () => {
         >
           {(Material, props) => <Material {...props} />}
         </Reflector> */}
-        <mesh
+        {/* <mesh
           material={concreteMaterial}
           rotation={[-Math.PI / 2, 0, 0]}
           receiveShadow
         >
           <planeGeometry args={[200, 200]} />
-        </mesh>
+        </mesh> */}
 
-        <spotLight
+        {/* <spotLight
           position={[0, 40, 0]}
           color="white"
           ref={pointLightRef}
-          // intensity={0.2}
+          intensity={0.2}
           castShadow
-        />
+        /> */}
+        {/* <pointLight
+          position={[20, -20, 0]}
+          color="red"
+          ref={bluePointLightRef}
+          intensity={5}
+        /> */}
+        {/* <pointLight
+          position={[-4, 15.4, 0]}
+          color="white"
+          ref={pointLightRef}
+          intensity={1}
+        /> */}
+        <ambientLight color={0x888888} />
       </Suspense>
     </>
   );
