@@ -93,7 +93,6 @@ const Inner = () => {
           ref={pointLightRef}
           intensity={1}
         /> */}
-        <ambientLight color={0x888888} />
       </Suspense>
     </>
   );
