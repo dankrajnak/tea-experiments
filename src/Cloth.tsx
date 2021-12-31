@@ -83,12 +83,11 @@ const Cloth = () => {
 
   const pointLightRef = useRef<PointLight>();
 
-  const { amplitude, speed, frequencyX, frequencyY, bunnyScale } = useControls({
-    amplitude: { value: 10, min: 0, max: 20 },
-    speed: 8,
-    frequencyX: { value: 1.16, min: 1, max: 5 },
-    frequencyY: { value: 1.24, min: 1, max: 5 },
+  const { amplitude, distance, morphAmount, bunnyScale } = useControls({
+    amplitude: { value: 100, min: 0, max: 50 },
+    distance: { value: 42, min: 1, max: 200 },
     bunnyScale: { value: 163, min: 50, max: 350, step: 1 },
+    morphAmount: { value: 1, min: 0, max: 1, step: 0.01 },
   });
 
   const { interiorLightColor, externalLightColor } = useControls("lights", {
@@ -98,31 +97,80 @@ const Cloth = () => {
 
   const { computeVertexNormals } = useControls({ computeVertexNormals: false });
 
-  useFrame((state) => {
-    const time = state.clock.elapsedTime * speed;
+  // Create morph targets
+  useEffect(() => {
     if (geometryRef.current) {
+      // geometryRef.current.morphTargetsRelative = true;
+      geometryRef.current.morphAttributes.position = [];
+
+      // Create center wave.
       const positions = geometryRef.current.getAttribute(
         "position"
       ) as BufferAttribute;
-
-      positions.usage = THREE.DynamicDrawUsage;
-
-      const scalingFactor = (2 * Math.PI) / bunnyScale;
+      const center = new THREE.Vector2(0, 0);
+      const newPositions = [];
+      const normals = [];
+      // Don't do this
       for (let i = 0; i < positions.count; i++) {
-        const newZ =
-          amplitude *
-          (Math.sin((positions.getX(i) + time) * scalingFactor * frequencyX) +
-            Math.sin((positions.getY(i) + time) * scalingFactor * frequencyY));
+        const x = positions.getX(i);
+        const y = positions.getY(i);
+        const z = positions.getZ(i);
+        const position = new THREE.Vector2(x, y);
+        if (position.distanceToSquared(center) < distance ** 2) {
+          newPositions.push(
+            x,
+            y,
+            (1 - position.distanceToSquared(center) / distance ** 2) * amplitude
+          );
+        } else {
+          newPositions.push(x, y, 0);
+        }
+        normals.push(0, 0, -1);
+      }
+      geometryRef.current.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(newPositions, 3)
+      );
+      geometryRef.current.computeVertexNormals();
 
-        positions.setZ(i, newZ);
-      }
-      positions.needsUpdate = true;
-      if (computeVertexNormals) {
-        geometryRef.current.computeVertexNormals();
-        geometryRef.current.getAttribute("normal").needsUpdate = true;
-      }
+      geometryRef.current.morphAttributes.position.push(
+        new THREE.Float32BufferAttribute(newPositions, 3)
+      );
+
+      geometryRef.current.morphAttributes.normal = [
+        geometryRef.current.getAttribute("normal").clone(),
+      ];
+
+      geometryRef.current.setAttribute("position", positions);
+      geometryRef.current.computeVertexNormals();
     }
-  });
+  }, [amplitude, bunnyScale, distance]);
+
+  // useFrame((state) => {
+  //   const time = state.clock.elapsedTime * speed;
+  //   if (geometryRef.current) {
+  //     const positions = geometryRef.current.getAttribute(
+  //       "position"
+  //     ) as BufferAttribute;
+
+  //     positions.usage = THREE.DynamicDrawUsage;
+
+  //     const scalingFactor = (2 * Math.PI) / bunnyScale;
+  //     for (let i = 0; i < positions.count; i++) {
+  //       const newZ =
+  //         amplitude *
+  //         (Math.sin((positions.getX(i) + time) * scalingFactor * frequencyX) +
+  //           Math.sin((positions.getY(i) + time) * scalingFactor * frequencyY));
+
+  //       positions.setZ(i, newZ);
+  //     }
+  //     positions.needsUpdate = true;
+  //     if (computeVertexNormals) {
+  //       geometryRef.current.computeVertexNormals();
+  //       geometryRef.current.getAttribute("normal").needsUpdate = true;
+  //     }
+  //   }
+  // });
 
   const materialRef = useRef<ShaderMaterial>();
   useEffect(() => {
@@ -133,12 +181,15 @@ const Cloth = () => {
 
   return (
     <>
-      <mesh>
+      <mesh morphTargetInfluences={[morphAmount]}>
         <planeBufferGeometry
           args={[bunnyScale, bunnyScale, bunnyScale, bunnyScale]}
           ref={geometryRef}
         />
         <shaderMaterial
+          transparent
+          opacity={0.1}
+          side={THREE.DoubleSide}
           uniforms={uniforms}
           vertexShader={SubsurfaceScatteringShader.vertexShader}
           fragmentShader={SubsurfaceScatteringShader.fragmentShader}
@@ -178,7 +229,7 @@ const Cloth = () => {
         intensity={0.5}
         distance={800}
         ref={pointLightRef}
-        position={[0, 0, -50]}
+        position={[0, 10, 20]}
       >
         <mesh>
           <sphereBufferGeometry args={[4, 8, 8]} />

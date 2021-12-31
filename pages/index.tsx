@@ -37,7 +37,7 @@ const Inner = () => {
   return (
     <>
       <OrbitControls
-        minDistance={100}
+        minDistance={10}
         // enableZoom={false}
         // enablePan={false}
         // maxPolarAngle={Math.PI / 2.5}
