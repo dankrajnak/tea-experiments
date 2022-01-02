@@ -11,7 +11,7 @@ import {
 } from "three";
 import { SubsurfaceScatteringShader } from "three/examples/jsm/shaders/SubsurfaceScatteringShader";
 import { useControls } from "leva";
-import { useFBX } from "@react-three/drei";
+import SimplexNoise from "simplex-noise";
 
 const uniforms = THREE.UniformsUtils.clone(SubsurfaceScatteringShader.uniforms);
 uniforms["diffuse"].value = new THREE.Vector3(0.2, 0.2, 0.2);
@@ -65,6 +65,50 @@ const controlsWithControls: Parameters<typeof useControls>[0] = controls.reduce(
   {}
 );
 
+type Morpher = {
+  morph: (args: {
+    x: number;
+    y: number;
+    noiseFactor: number;
+    amplitude: number;
+    noiseMaker: (x: number, y: number) => number;
+  }) => number;
+  min: number;
+  max: number;
+  speed: number;
+};
+
+const morphers: Morpher[] = [
+  {
+    morph: ({ x, y, noiseFactor, amplitude, noiseMaker }) =>
+      noiseMaker(x / noiseFactor, y / noiseFactor) * amplitude,
+    min: 0.2,
+    max: 0.4,
+    speed: 1,
+  },
+  {
+    morph: ({ x, y, noiseFactor, noiseMaker }) =>
+      noiseMaker(x / noiseFactor, (3 * y) / noiseFactor),
+    min: 0.5,
+    max: 1,
+    speed: 0.2,
+  },
+  {
+    morph: ({ x, y, noiseFactor, amplitude, noiseMaker }) =>
+      noiseMaker(x / noiseFactor / 4, y / noiseFactor / 4) * amplitude,
+    min: 0.2,
+    max: 1,
+    speed: 0.5,
+  },
+  {
+    morph: ({ x, y, noiseFactor, amplitude, noiseMaker }) =>
+      noiseMaker(x / noiseFactor / 4, y / noiseFactor / 4) * amplitude,
+    min: 0.5,
+    max: 2,
+    speed: 0.1,
+  },
+];
+
 const Cloth = () => {
   const geometryRef = useRef<PlaneBufferGeometry>();
 
@@ -83,11 +127,31 @@ const Cloth = () => {
 
   const pointLightRef = useRef<PointLight>();
 
-  const { amplitude, distance, morphAmount, bunnyScale } = useControls({
-    amplitude: { value: 100, min: 0, max: 50 },
-    distance: { value: 42, min: 1, max: 200 },
-    bunnyScale: { value: 163, min: 50, max: 350, step: 1 },
-    morphAmount: { value: 1, min: 0, max: 1, step: 0.01 },
+  const { amplitude, noiseFactor, bunnyScale } = useControls({
+    amplitude: { value: 20, min: 0, max: 50 },
+    noiseFactor: { value: 42, min: 1, max: 200 },
+    bunnyScale: { value: 300, min: 50, max: 1000, step: 1 },
+  });
+
+  // const morphAmounts = useControls(
+  //   morphers.reduce(
+  //     (sum, _, i) => ({
+  //       ...sum,
+  //       [`morphAmount${i + 1}`]: { value: 0, min: 0, max: 2, step: 0.01 },
+  //     }),
+  //     {}
+  //   ) as Record<string, { value: number }>
+  // );
+
+  const morphAmounts = useRef(morphers.map((_) => 0));
+  useFrame((state) => {
+    const elapsedTime = state.clock.elapsedTime;
+    morphers.forEach((morpher, i) => {
+      morphAmounts.current[i] =
+        ((Math.sin(elapsedTime * morpher.speed) + 1) / 2) *
+          (morpher.max - morpher.min) +
+        morpher.min;
+    });
   });
 
   const { interiorLightColor, externalLightColor } = useControls("lights", {
@@ -95,82 +159,68 @@ const Cloth = () => {
     externalLightColor: { r: 0, g: 0, b: 255 },
   });
 
-  const { computeVertexNormals } = useControls({ computeVertexNormals: false });
-
   // Create morph targets
   useEffect(() => {
     if (geometryRef.current) {
       // geometryRef.current.morphTargetsRelative = true;
       geometryRef.current.morphAttributes.position = [];
+      geometryRef.current.morphAttributes.normal = [];
 
-      // Create center wave.
       const positions = geometryRef.current.getAttribute(
         "position"
       ) as BufferAttribute;
-      const center = new THREE.Vector2(0, 0);
-      const newPositions = [];
-      const normals = [];
-      // Don't do this
+
+      // Make some noise
+      const noises = morphers.map((_) => new SimplexNoise());
+      const newPositionsAndNormals = morphers.map((_) => ({
+        normals: [] as number[],
+        positions: [] as number[],
+      }));
       for (let i = 0; i < positions.count; i++) {
         const x = positions.getX(i);
         const y = positions.getY(i);
-        const z = positions.getZ(i);
-        const position = new THREE.Vector2(x, y);
-        if (position.distanceToSquared(center) < distance ** 2) {
-          newPositions.push(
+
+        morphers.forEach((morpher, i) => {
+          const noise = noises[i];
+          const positionsAndNormals = newPositionsAndNormals[i];
+          positionsAndNormals.positions.push(
             x,
             y,
-            (1 - position.distanceToSquared(center) / distance ** 2) * amplitude
+            morpher.morph({
+              x,
+              y,
+              noiseFactor,
+              noiseMaker: (x, y) => noise.noise2D(x, y),
+              amplitude,
+            })
           );
-        } else {
-          newPositions.push(x, y, 0);
-        }
-        normals.push(0, 0, -1);
+        });
       }
-      geometryRef.current.setAttribute(
-        "position",
-        new THREE.Float32BufferAttribute(newPositions, 3)
-      );
-      geometryRef.current.computeVertexNormals();
 
-      geometryRef.current.morphAttributes.position.push(
-        new THREE.Float32BufferAttribute(newPositions, 3)
-      );
+      // Compute normals inefficiently.
+      newPositionsAndNormals.forEach((pAndN) => {
+        if (geometryRef.current) {
+          geometryRef.current.setAttribute(
+            "position",
+            new THREE.Float32BufferAttribute(pAndN.positions, 3)
+          );
+          geometryRef.current.computeVertexNormals();
 
-      geometryRef.current.morphAttributes.normal = [
-        geometryRef.current.getAttribute("normal").clone(),
-      ];
+          geometryRef.current.morphAttributes.normal.push(
+            geometryRef.current.getAttribute("normal").clone()
+          );
 
+          geometryRef.current.morphAttributes.position.push(
+            new THREE.Float32BufferAttribute(pAndN.positions, 3)
+          );
+        }
+      });
+
+      // reset
       geometryRef.current.setAttribute("position", positions);
       geometryRef.current.computeVertexNormals();
     }
-  }, [amplitude, bunnyScale, distance]);
-
-  // useFrame((state) => {
-  //   const time = state.clock.elapsedTime * speed;
-  //   if (geometryRef.current) {
-  //     const positions = geometryRef.current.getAttribute(
-  //       "position"
-  //     ) as BufferAttribute;
-
-  //     positions.usage = THREE.DynamicDrawUsage;
-
-  //     const scalingFactor = (2 * Math.PI) / bunnyScale;
-  //     for (let i = 0; i < positions.count; i++) {
-  //       const newZ =
-  //         amplitude *
-  //         (Math.sin((positions.getX(i) + time) * scalingFactor * frequencyX) +
-  //           Math.sin((positions.getY(i) + time) * scalingFactor * frequencyY));
-
-  //       positions.setZ(i, newZ);
-  //     }
-  //     positions.needsUpdate = true;
-  //     if (computeVertexNormals) {
-  //       geometryRef.current.computeVertexNormals();
-  //       geometryRef.current.getAttribute("normal").needsUpdate = true;
-  //     }
-  //   }
-  // });
+  }, [amplitude, bunnyScale, noiseFactor]);
 
   const materialRef = useRef<ShaderMaterial>();
   useEffect(() => {
@@ -181,14 +231,15 @@ const Cloth = () => {
 
   return (
     <>
-      <mesh morphTargetInfluences={[morphAmount]}>
+      <mesh
+        morphTargetInfluences={morphAmounts.current}
+        rotation={[-Math.PI / 2, 0, 0]}
+      >
         <planeBufferGeometry
           args={[bunnyScale, bunnyScale, bunnyScale, bunnyScale]}
           ref={geometryRef}
         />
         <shaderMaterial
-          transparent
-          opacity={0.1}
           side={THREE.DoubleSide}
           uniforms={uniforms}
           vertexShader={SubsurfaceScatteringShader.vertexShader}
@@ -206,7 +257,7 @@ const Cloth = () => {
         ]}
         intensity={2}
         distance={300}
-        position={[0, -50, 250]}
+        position={[0, 200, 10]}
       >
         <mesh>
           <sphereBufferGeometry args={[4, 8, 8]} />
@@ -242,13 +293,6 @@ const Cloth = () => {
           />
         </mesh>
       </pointLight>
-
-      <lineSegments position={[0, 6.5, 0]}>
-        <edgesGeometry
-          args={[new THREE.BoxGeometry(350, 350, 350)]}
-        ></edgesGeometry>
-        <lineBasicMaterial color="white" />
-      </lineSegments>
     </>
   );
 };
