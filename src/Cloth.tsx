@@ -234,6 +234,7 @@ const Cloth = () => {
       <mesh
         morphTargetInfluences={morphAmounts.current}
         rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 40, 0]}
       >
         <planeBufferGeometry
           args={[bunnyScale, bunnyScale, bunnyScale, bunnyScale]}
@@ -259,7 +260,7 @@ const Cloth = () => {
         distance={300}
         position={[0, 200, 10]}
       >
-        <mesh>
+        {/* <mesh>
           <sphereBufferGeometry args={[4, 8, 8]} />
           <meshBasicMaterial
             color={[
@@ -268,7 +269,7 @@ const Cloth = () => {
               externalLightColor.b / 256,
             ]}
           />
-        </mesh>
+        </mesh> */}
       </pointLight>
 
       <pointLight
@@ -280,17 +281,11 @@ const Cloth = () => {
         intensity={0.5}
         distance={800}
         ref={pointLightRef}
-        position={[0, 10, 20]}
+        position={[0, 50, 20]}
       >
         <mesh>
           <sphereBufferGeometry args={[4, 8, 8]} />
-          <meshBasicMaterial
-            color={[
-              interiorLightColor.r / 256,
-              interiorLightColor.g / 256,
-              interiorLightColor.b / 256,
-            ]}
-          />
+          <meshBasicMaterial color="black" />
         </mesh>
       </pointLight>
     </>
