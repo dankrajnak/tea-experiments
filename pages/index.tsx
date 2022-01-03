@@ -32,8 +32,8 @@ const Home: NextPage = () => {
 };
 
 const Inner = () => {
-  const { useEffects } = useControls({ useEffects: true });
-  const { threshold, smoothing, height } = useControls("bloom effect", {
+  const { threshold, smoothing, height, on } = useControls("bloom effect", {
+    on: true,
     threshold: { value: 0, min: 0, max: 1 },
     smoothing: { value: 0.9, min: 0, max: 1, step: 0.1 },
     height: { value: 500, min: 50, max: 800 },
@@ -48,7 +48,7 @@ const Inner = () => {
         maxPolarAngle={(Math.PI / 2) * 0.95}
         // minPolarAngle={Math.PI / 4}
       />
-      {useEffects && (
+      {on && (
         <EffectComposer>
           <Bloom
             luminanceThreshold={threshold}
