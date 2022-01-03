@@ -120,28 +120,16 @@ const Cloth = () => {
     TextureLoader,
     "textures/concrete_floor_02_diff_1k.jpg"
   );
-  useControls("shader controls", controlsWithControls);
+  useControls("shader", controlsWithControls);
 
   uniforms.map.value = whiteTexture;
   uniforms.thicknessMap.value = whiteTexture;
 
   const pointLightRef = useRef<PointLight>();
 
-  const { amplitude, noiseFactor, bunnyScale } = useControls({
-    amplitude: { value: 20, min: 0, max: 50 },
-    noiseFactor: { value: 42, min: 1, max: 200 },
-    bunnyScale: { value: 300, min: 50, max: 1000, step: 1 },
-  });
-
-  // const morphAmounts = useControls(
-  //   morphers.reduce(
-  //     (sum, _, i) => ({
-  //       ...sum,
-  //       [`morphAmount${i + 1}`]: { value: 0, min: 0, max: 2, step: 0.01 },
-  //     }),
-  //     {}
-  //   ) as Record<string, { value: number }>
-  // );
+  const amplitude = 20;
+  const noiseFactor = 42;
+  const bunnyScale = 300;
 
   const morphAmounts = useRef(morphers.map((_) => 0));
   useFrame((state) => {
@@ -154,10 +142,12 @@ const Cloth = () => {
     });
   });
 
-  const { interiorLightColor, externalLightColor } = useControls("lights", {
-    interiorLightColor: { r: 255, g: 0, b: 0 },
-    externalLightColor: { r: 0, g: 0, b: 255 },
-  });
+  const { interiorLightColor, externalLightColor, interiorLightPosition } =
+    useControls("lights", {
+      interiorLightColor: { r: 255, g: 0, b: 0 },
+      externalLightColor: { r: 0, g: 0, b: 255 },
+      interiorLightPosition: { x: 0, y: 50, z: 20 },
+    });
 
   // Create morph targets
   useEffect(() => {
@@ -259,18 +249,7 @@ const Cloth = () => {
         intensity={2}
         distance={300}
         position={[0, 200, 10]}
-      >
-        {/* <mesh>
-          <sphereBufferGeometry args={[4, 8, 8]} />
-          <meshBasicMaterial
-            color={[
-              externalLightColor.r / 256,
-              externalLightColor.g / 256,
-              externalLightColor.b / 256,
-            ]}
-          />
-        </mesh> */}
-      </pointLight>
+      ></pointLight>
 
       <pointLight
         color={[
@@ -281,7 +260,11 @@ const Cloth = () => {
         intensity={0.5}
         distance={800}
         ref={pointLightRef}
-        position={[0, 50, 20]}
+        position={[
+          interiorLightPosition.x,
+          interiorLightPosition.y,
+          interiorLightPosition.z,
+        ]}
       >
         <mesh>
           <sphereBufferGeometry args={[4, 8, 8]} />

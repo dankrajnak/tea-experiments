@@ -33,6 +33,11 @@ const Home: NextPage = () => {
 
 const Inner = () => {
   const { useEffects } = useControls({ useEffects: true });
+  const { threshold, smoothing, height } = useControls("bloom effect", {
+    threshold: { value: 0, min: 0, max: 1 },
+    smoothing: { value: 0.9, min: 0, max: 1, step: 0.1 },
+    height: { value: 500, min: 50, max: 800 },
+  });
   return (
     <>
       <OrbitControls
@@ -45,8 +50,12 @@ const Inner = () => {
       />
       {useEffects && (
         <EffectComposer>
-          <Bloom luminanceThreshold={0} luminanceSmoothing={0.9} height={500} />
-          <Vignette eskil={false} offset={0.4} darkness={1.1} />
+          <Bloom
+            luminanceThreshold={threshold}
+            luminanceSmoothing={smoothing}
+            height={height}
+          />
+          <Vignette eskil offset={0.1} darkness={1.1} />
           <SSAO />
         </EffectComposer>
       )}
