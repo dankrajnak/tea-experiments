@@ -12,6 +12,7 @@ import {
 import { SubsurfaceScatteringShader } from "three/examples/jsm/shaders/SubsurfaceScatteringShader";
 import { useControls } from "leva";
 import SimplexNoise from "simplex-noise";
+import { useScroll } from "@react-three/drei";
 
 const uniforms = THREE.UniformsUtils.clone(SubsurfaceScatteringShader.uniforms);
 uniforms["diffuse"].value = new THREE.Vector3(0.2, 0.2, 0.2);
@@ -219,6 +220,17 @@ const Cloth = () => {
     }
   }, []);
 
+  const scroll = useScroll();
+  const externalPointLightRef = useRef<PointLight>();
+  useFrame((state) => {
+    if (pointLightRef.current && externalPointLightRef.current) {
+      pointLightRef.current.intensity = scroll.range(0, 1) * 2 + 0.1;
+      externalPointLightRef.current.intensity = scroll.range(0, 1) * 2 + 0.1;
+    }
+    // state.camera.position.z = 300 - scroll.range(0, 1) * 300;
+    // state.camera.position.y = 300 - scroll.range(0.2, 1) * 300;
+  });
+
   return (
     <>
       <mesh
@@ -246,6 +258,7 @@ const Cloth = () => {
           externalLightColor.g / 256,
           externalLightColor.b / 256,
         ]}
+        ref={externalPointLightRef}
         intensity={2}
         distance={300}
         position={[0, 200, 10]}
@@ -257,8 +270,7 @@ const Cloth = () => {
           interiorLightColor.g / 256,
           interiorLightColor.b / 256,
         ]}
-        intensity={0.5}
-        distance={800}
+        distance={200}
         ref={pointLightRef}
         position={[
           interiorLightPosition.x,
