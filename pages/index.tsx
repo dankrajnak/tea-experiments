@@ -8,6 +8,7 @@ import Cloth from "../src/Cloth";
 import {
   Bloom,
   EffectComposer,
+  SMAA,
   SSAO,
   Vignette,
 } from "@react-three/postprocessing";
@@ -56,6 +57,7 @@ const Inner = () => {
             height={height}
           />
           <Vignette eskil offset={0.1} darkness={1.1} />
+          <SMAA />
           <SSAO />
         </EffectComposer>
       )}
