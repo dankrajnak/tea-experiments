@@ -131,16 +131,30 @@ const Cloth = () => {
   const noiseFactor = 42;
   const bunnyScale = 300;
 
-  const morphAmounts = useRef(morphers.map((_) => 0));
-  useFrame((state) => {
-    const elapsedTime = state.clock.elapsedTime;
-    morphers.forEach((morpher, i) => {
-      morphAmounts.current[i] =
-        ((Math.sin(elapsedTime * morpher.speed) + 1) / 2) *
-          (morpher.max - morpher.min) +
-        morpher.min;
-    });
-  });
+  // const morphAmounts = useRef(morphers.map((_) => 0));
+  // useFrame((state) => {
+  //   const elapsedTime = state.clock.elapsedTime;
+  //   morphers.forEach((morpher, i) => {
+  //     morphAmounts.current[i] =
+  //       ((Math.sin(elapsedTime * morpher.speed) + 1) / 2) *
+  //         (morpher.max - morpher.min) +
+  //       morpher.min;
+  //   });
+  // });
+
+  const morphAmounts = useControls(
+    morphers.reduce(
+      (sum, morpher, i) => ({
+        ...sum,
+        [`morphAmount${i + 1}`]: {
+          value: morpher.min,
+          min: morpher.min,
+          max: morpher.max,
+        },
+      }),
+      {}
+    ) as Record<string, { value: number }>
+  );
 
   const { interiorLightColor, externalLightColor, interiorLightPosition } =
     useControls("lights", {
@@ -222,7 +236,7 @@ const Cloth = () => {
   return (
     <>
       <mesh
-        morphTargetInfluences={morphAmounts.current}
+        morphTargetInfluences={Object.values(morphAmounts)}
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 40, 0]}
       >
