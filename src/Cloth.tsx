@@ -129,7 +129,8 @@ const Cloth = () => {
 
   const amplitude = 20;
   const noiseFactor = 42;
-  const bunnyScale = 300;
+  const planeScale = 300;
+  const verticesPerSideInPlane = planeScale * 0.75;
 
   const morphAmounts = useRef(morphers.map((_) => 0));
   useFrame((state) => {
@@ -210,7 +211,7 @@ const Cloth = () => {
       geometryRef.current.setAttribute("position", positions);
       geometryRef.current.computeVertexNormals();
     }
-  }, [amplitude, bunnyScale, noiseFactor]);
+  }, [amplitude, planeScale, noiseFactor]);
 
   const materialRef = useRef<ShaderMaterial>();
   useEffect(() => {
@@ -227,7 +228,12 @@ const Cloth = () => {
         position={[0, 40, 0]}
       >
         <planeBufferGeometry
-          args={[bunnyScale, bunnyScale, bunnyScale, bunnyScale]}
+          args={[
+            planeScale,
+            planeScale,
+            verticesPerSideInPlane,
+            verticesPerSideInPlane,
+          ]}
           ref={geometryRef}
         />
         <shaderMaterial
